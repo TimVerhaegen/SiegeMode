@@ -13,6 +13,10 @@ Players do NOT need to install the mod to play it on a server! The mod only need
 
 The mod is still in development. There are other features planned, including new game modes and victory conditions.
 
+# This version: additions
+
+Check this repository's wiki for some details on what I've changed.
+
 # Features
 
 The primary features of the Siege Mode mod are as follows:
