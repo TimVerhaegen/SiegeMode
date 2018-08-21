@@ -566,6 +566,13 @@ public class Siege
 			team.joinPlayer(entityplayer);
 			
 			ChunkCoordinates teamSpawn = team.getRespawnPoint();
+
+			int dim = entityplayer.dimension;
+			ChunkCoordinates coords = entityplayer.getPlayerCoordinates();
+			boolean forced = entityplayer.isSpawnForced(dim);
+
+			SiegeDatabase.previousSpawnLocations.put(entityplayer.getUniqueID(), new BackupSpawnPoint(dim, coords, forced));
+
 			entityplayer.setPositionAndUpdate(teamSpawn.posX + 0.5D, teamSpawn.posY, teamSpawn.posZ + 0.5D);
 			
 			if (kit != null && team.isKitAvailable(kit))
@@ -818,9 +825,15 @@ public class Siege
 	
 	public static void dispel(EntityPlayer entityplayer)
 	{
-		ChunkCoordinates spawnCoords = entityplayer.worldObj.getSpawnPoint();
+		BackupSpawnPoint spawnPoint = SiegeDatabase.previousSpawnLocations.get(entityplayer.getUniqueID());
+		ChunkCoordinates spawnCoords = spawnPoint.spawnCoords;
+		int dimension = spawnPoint.dimension;
+
 		if (spawnCoords != null)
 		{
+			if(entityplayer.dimension != dimension) {
+				entityplayer.travelToDimension(dimension);
+			}
 			entityplayer.setPositionAndUpdate(spawnCoords.posX + 0.5D, spawnCoords.posY + 0.5D, spawnCoords.posZ + 0.5D);
 		}
 	}

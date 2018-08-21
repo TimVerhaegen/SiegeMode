@@ -102,7 +102,7 @@ public class SiegePlayerData
 		killstreak = nbt.getInteger("Killstreak");
 		longestKillstreak = nbt.getInteger("LongestKillstreak");
 	}
-	
+
 	public BackupSpawnPoint getBackupSpawnPoint()
 	{
 		return backupSpawnPoint;
