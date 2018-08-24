@@ -21,7 +21,14 @@ public class SiegePlayerData
 	private UUID chosenKit;
 	private boolean clearedLimitedKit = false;
 	private String nextTeam;
-	
+
+	// -------------------------
+	private int currentPlayerLives;
+	private boolean defeated = false;
+	private int offlineTicks;
+	private boolean online;
+	// -------------------------
+
 	private int kills;
 	private int deaths;
 	private int killstreak;
@@ -173,11 +180,20 @@ public class SiegePlayerData
 		return deaths;
 	}
 	
-	public void onDeath()
+	public boolean onDeath()
 	{
 		deaths++;
 		killstreak = 0;
 		theSiege.markDirty();
+
+		// -------------------------
+		if (theSiege.getSiegeType() == SiegeType.PlayerAttempts && currentPlayerLives == 0)
+			return false;
+
+		currentPlayerLives--;
+		return true;
+		// -------------------------
+
 	}
 	
 	public int getKillstreak()
@@ -198,9 +214,19 @@ public class SiegePlayerData
 		longestKillstreak = 0;
 		theSiege.markDirty();
 	}
-	
+
+	public boolean onUpdate() {
+		if(!online)
+			offlineTicks++;
+		if(offlineTicks / 20 > theSiege.getMaxTimeOffline())
+			return false;
+		return true;
+	}
+
 	public void onLogin(EntityPlayerMP entityplayer)
 	{
+		online = true;
+		offlineTicks = 0;
 		if (clearedLimitedKit)
 		{
 			clearedLimitedKit = false;
@@ -212,6 +238,8 @@ public class SiegePlayerData
 	
 	public void onLogout(EntityPlayerMP entityplayer)
 	{
+		online = false;
+
 		lastSentSiegeObjective = null;
 		
 		SiegeTeam team = theSiege.getPlayerTeam(entityplayer);
@@ -259,6 +287,20 @@ public class SiegePlayerData
 			
 			List<Score> allSiegeStats = new ArrayList();
 			allSiegeStats.add(new Score(scoreboard, siegeObjective, timeRemaining));
+			allSiegeStats.add(null);
+
+			// -------------------------
+			SiegeType t = theSiege.getSiegeType();
+			allSiegeStats.add(new Score(scoreboard, siegeObjective, "Type: " + convertSiegeTypeReadable()));
+			if(t == SiegeType.PlayerAttempts || t == SiegeType.TeamAttempts) {
+				allSiegeStats.add(new Score(scoreboard, siegeObjective, "Max enter: " + Siege.ticksToTimeString(theSiege.getMaxEnterTime())));
+				if (t == SiegeType.PlayerAttempts)
+					allSiegeStats.add(new Score(scoreboard, siegeObjective, "Lives: " + currentPlayerLives));
+				else
+					allSiegeStats.add(new Score(scoreboard, siegeObjective, "Lives: " + team.getCurrentTeamLives()));
+			}
+			// -------------------------
+
 			allSiegeStats.add(null);
 			allSiegeStats.add(new Score(scoreboard, siegeObjective, "Team: " + team.getTeamName()));
 			allSiegeStats.add(new Score(scoreboard, siegeObjective, "Kit: " + kitName));
@@ -323,4 +365,46 @@ public class SiegePlayerData
 			lastSentSiegeObjective = siegeObjective;
 		}
 	}
+
+	// -------------------------
+	public void setCurrentPlayerLives(int i) {
+		currentPlayerLives = i;
+	}
+
+	public int getCurrentPlayerLives() {
+		return currentPlayerLives;
+	}
+
+	public boolean decrementCurrentLives() {
+		if(currentPlayerLives < 1)
+			return false;
+
+		currentPlayerLives--;
+		return true;
+	}
+
+	public void setDefeated(boolean b) {
+		this.defeated = b;
+	}
+
+	public boolean isDefeated() {
+		return defeated;
+	}
+
+	public void incrementOfflineTicks() {
+		offlineTicks++;
+	}
+
+	private String convertSiegeTypeReadable() {
+		switch(theSiege.getSiegeType()) {
+			case PlayerAttempts:
+				return "Lim. player lives";
+			case TeamAttempts:
+				return "Lim. team lives";
+			case Regular:
+				return "Regular";
+		}
+		return "";
+	}
+	// -------------------------
 }

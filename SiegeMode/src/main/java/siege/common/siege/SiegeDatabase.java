@@ -17,8 +17,6 @@ public class SiegeDatabase
 	private static Map<UUID, Siege> siegeMap = new HashMap();
 	private static Map<String, UUID> siegeNameMap = new HashMap();
 
-	public static Map<UUID, BackupSpawnPoint> previousSpawnLocations = new HashMap<UUID, BackupSpawnPoint>();
-
 	public static Siege getSiege(String name)
 	{
 		return siegeMap.get(getSiegeNameID(name));

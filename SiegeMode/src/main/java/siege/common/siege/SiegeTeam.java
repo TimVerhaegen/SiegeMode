@@ -18,7 +18,13 @@ public class SiegeTeam
 	private List<UUID> teamPlayers = new ArrayList();
 	private List<UUID> teamKits = new ArrayList();
 	private Map<UUID, Integer> teamKitLimits = new HashMap();
-	
+
+	// -------------------------
+	private int maxTeamLives = 5;
+	private int currentTeamLives;
+	private List<UUID> spectators = new ArrayList<UUID>();
+	// -------------------------
+
 	private int respawnX;
 	private int respawnY;
 	private int respawnZ;
@@ -265,10 +271,15 @@ public class SiegeTeam
 		return teamDeaths;
 	}
 	
-	public void addTeamDeath()
+	public boolean addTeamDeath()
 	{
 		teamDeaths++;
 		theSiege.markDirty();
+
+		if (!decrementCurrentLives())
+			return false;
+
+		return true;
 	}
 	
 	public String getSiegeOngoingScore()
@@ -282,8 +293,11 @@ public class SiegeTeam
 		int mvpKills = 0;
 		int mvpDeaths = 0;
 		int mvpScore = Integer.MIN_VALUE;
-		for (UUID player : teamPlayers)
-		{
+
+		List<UUID> participants = teamPlayers;
+		participants.addAll(spectators);
+
+		for (UUID player : participants) {
 			SiegePlayerData playerData = theSiege.getPlayerData(player);
 			int kills = playerData.getKills();
 			int deaths = playerData.getDeaths();
@@ -317,7 +331,19 @@ public class SiegeTeam
 	public void writeToNBT(NBTTagCompound nbt)
 	{
 		nbt.setString("Name", teamName);
-		
+
+		// -------------------------
+		nbt.setInteger("MaxTeamLives", maxTeamLives);
+		nbt.setInteger("CurrentTeamLives", currentTeamLives);
+
+		NBTTagList spectatorTags = new NBTTagList();
+		for (UUID spectator : spectators)
+		{
+			spectatorTags.appendTag(new NBTTagString(spectator.toString()));
+		}
+		nbt.setTag("Spectators", spectatorTags);
+		// -------------------------
+
 		NBTTagList playerTags = new NBTTagList();
 		for (UUID player : teamPlayers)
 		{
@@ -355,7 +381,23 @@ public class SiegeTeam
 	public void readFromNBT(NBTTagCompound nbt)
 	{
 		teamName = nbt.getString("Name");
-		
+
+		// -------------------------
+		maxTeamLives = nbt.getInteger("MaxTeamLives");
+		currentTeamLives = nbt.getInteger("CurrentTeamLives");
+
+		spectators.clear();
+		if (nbt.hasKey("Spectators"))
+		{
+			NBTTagList spectatorTags = nbt.getTagList("Spectators", Constants.NBT.TAG_STRING);
+			for (int i = 0; i < spectatorTags.tagCount(); i++)
+			{
+				UUID player = UUID.fromString(spectatorTags.getStringTagAt(i));
+				spectators.add(player);
+			}
+		}
+		// -------------------------
+
 		teamPlayers.clear();
 		if (nbt.hasKey("Players"))
 		{
@@ -412,4 +454,46 @@ public class SiegeTeam
 		teamKills = nbt.getInteger("Kills");
 		teamDeaths = nbt.getInteger("Deaths");
 	}
+
+	// -------------------------
+	public void setCurrentTeamLives(int i) {
+		this.currentTeamLives = i;
+	}
+
+	public int getCurrentTeamLives() {
+		return currentTeamLives;
+	}
+
+	public boolean decrementCurrentLives() {
+		if(currentTeamLives < 1)
+			return false;
+
+		currentTeamLives--;
+		return true;
+	}
+
+	public void setMaxTeamLives(int i) {
+		this.maxTeamLives = i;
+	}
+
+	public int getMaxTeamLives() {
+		return maxTeamLives;
+	}
+
+	public void addSpectator(UUID playerID) {
+		spectators.add(playerID);
+	}
+
+	public void resetSpectators() {
+		spectators = new ArrayList<UUID>();
+	}
+
+	public boolean containsSpectator(UUID id) {
+		return spectators.contains(id);
+	}
+
+	public List<UUID> getSpectators() {
+		return spectators;
+	}
+	// -------------------------
 }

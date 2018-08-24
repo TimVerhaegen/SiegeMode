@@ -27,7 +27,10 @@ public class CommandSiegeSetup extends CommandBase
     {
         return "/siege_setup <...> (use TAB key to autocomplete parameters)";
     }
-	
+
+    /*
+    max-team-lives, max-player-lives, settype
+     */
 	@Override
     public void processCommand(ICommandSender sender, String[] args)
     {
@@ -60,8 +63,48 @@ public class CommandSiegeSetup extends CommandBase
 				if (siege != null)
 				{
 					String sFunction = args[2];
-					
-					if (sFunction.equals("rename"))
+
+					// -------------------------
+					if (sFunction.equals("settype")) {
+						String type = args[3];
+						if (type.equals("regular"))
+							siege.setSiegeType(SiegeType.Regular);
+						else if (type.equals("player-attempts"))
+							siege.setSiegeType(SiegeType.PlayerAttempts);
+						else if (type.equals("team-attempts"))
+							siege.setSiegeType(SiegeType.TeamAttempts);
+						func_152373_a(sender, this, "Set type of siege %s to %s", siegeName, type);
+						return;
+					}
+					else if (sFunction.equals("leave-timer")) {
+                        String leaveTimerArg = args[3];
+                        int leaveTimer = parseIntWithMin(sender, leaveTimerArg, 0);
+
+                        siege.setMaxTimeOffline(leaveTimer * 20);
+
+                        func_152373_a(sender, this, "Set max offline time of siege %s to %s", siegeName, leaveTimer);
+                        return;
+                    }
+					else if (sFunction.equals("max-player-lives")) {
+						String maxPlayerLivesArg = args[3];
+						int maxPlayerLives = parseIntWithMin(sender, maxPlayerLivesArg, 0);
+
+						siege.setMaxPlayerLives(maxPlayerLives);
+
+						func_152373_a(sender, this, "Set max player lives of siege %s to %s", siegeName, maxPlayerLives);
+						return;
+					}
+					else if (sFunction.equals("max-enter-time")) {
+						String maxEnterTimeArg = args[3];
+						int maxEnterTime = parseIntWithMin(sender, maxEnterTimeArg, 0);
+
+						siege.setMaxEnterTime(maxEnterTime * 20);
+
+						func_152373_a(sender, this, "Set maximal enter time of siege %s to %s seconds", siegeName, maxEnterTime);
+						return;
+					}
+					// -------------------------
+					else if (sFunction.equals("rename"))
 					{
 						String newName = args[3];
 						if (!SiegeDatabase.validSiegeName(newName))
@@ -114,8 +157,18 @@ public class CommandSiegeSetup extends CommandBase
 							if (team != null)
 							{
 								String teamFunction = args[5];
-								
-								if (teamFunction.equals("rename"))
+								// -------------------------
+								if (teamFunction.equals("max-team-lives")) {
+									String maxTeamLivesArg = args[6];
+									int maxTeamLives = parseIntWithMin(sender, maxTeamLivesArg, 0);
+
+									team.setMaxTeamLives(maxTeamLives);
+
+									func_152373_a(sender, this, "Set max team lives of siege %s to %s", siegeName, maxTeamLives);
+									return;
+								}
+								// -------------------------
+								else if (teamFunction.equals("rename"))
 								{
 									String teamRename = args[6];
 									if (!SiegeDatabase.validTeamName(teamRename))
@@ -461,8 +514,8 @@ public class CommandSiegeSetup extends CommandBase
     	        	return getListOfStringsMatchingLastWord(args, SiegeDatabase.getAllSiegeNames().toArray(new String[0]));
     	        }
     	        if (args.length == 3)
-    	        {
-    	        	return getListOfStringsMatchingLastWord(args, "rename", "setcoords", "teams", "max-team-diff", "respawn-immunity", "friendly-fire", "mob-spawning", "terrain-protect", "terrain-protect-inactive", "dispel");
+				{
+    	        	return getListOfStringsMatchingLastWord(args, "rename", "setcoords", "teams", "max-team-diff", "respawn-immunity", "friendly-fire", "mob-spawning", "terrain-protect", "terrain-protect-inactive", "dispel", "settype", "max-player-lives", "max-enter-time", "leave-timer");
     	        }
     	        if (args.length >= 4)
     	        {
@@ -490,32 +543,31 @@ public class CommandSiegeSetup extends CommandBase
     	        					SiegeTeam team = siege.getTeam(teamName);
     	        					if (args.length == 6)
     	        					{
-    	        						return getListOfStringsMatchingLastWord(args, "rename", "kit-add", "kit-remove", "kit-limit", "kit-unlimit", "setspawn");
+    	        						return getListOfStringsMatchingLastWord(args, "rename", "kit-add", "kit-remove", "kit-limit", "kit-unlimit", "setspawn", "max-team-lives");
     	        					}
     	        					if (args.length >= 7)
     	        					{
     	        						String teamFunction = args[5];
     	            					if (teamFunction.equals("kit-add"))
-    	            					{
     	            						return getListOfStringsMatchingLastWord(args, team.listUnincludedKitNames().toArray(new String[0]));
-    	            					}
+
     	            					else if (teamFunction.equals("kit-remove") || teamFunction.equals("kit-limit") || teamFunction.equals("kit-unlimit"))
-    	            					{
     	            						return getListOfStringsMatchingLastWord(args, team.listKitNames().toArray(new String[0]));
-    	            					}
+
     	        					}
     	        				}
     	        			}
     	        			if (teamOption.equals("remove"))
-    	        			{
     	        				return getListOfStringsMatchingLastWord(args, siege.listTeamNames().toArray(new String[0]));
-    	        			}
+
     	        		}
     	        	}
+    	        	else if(sFunction.equals("settype"))
+						return getListOfStringsMatchingLastWord(args, "regular", "player-attempts", "team-attempts");
+
     	        	else if (sFunction.equals("friendly-fire") || sFunction.equals("mob-spawning") || sFunction.equals("terrain-protect") || sFunction.equals("terrain-protect-inactive") || sFunction.equals("dispel"))
-    	        	{
     	        		return getListOfStringsMatchingLastWord(args, "on", "off");
-    	        	}
+
     	        }
         	}
         	else if (sOption.equals("start"))

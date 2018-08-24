@@ -89,7 +89,9 @@ public class EventHandler
 					Kit.clearPlayerInvAndKit(entityplayer);
 				}
 				Siege.setHasSiegeGivenKit(entityplayer, false);
-				Siege.dispel(entityplayer);
+				Siege s = SiegeDatabase.getActiveSiegeForPlayer(entityplayer);
+				if (s != null)
+					s.dispel(entityplayer);
 			}
 		}
 	}

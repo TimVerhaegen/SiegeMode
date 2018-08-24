@@ -47,9 +47,12 @@ public class CommandSiegePlay extends CommandBase
 				{
 					throw new CommandException("You are already taking part in a siege!");
 				}
-				
 				String siegeName = args[1];
 				Siege siege = SiegeDatabase.getSiege(siegeName);
+
+				if(siege.hasSpectator(operator)) {
+					throw new CommandException("You are already took part in this siege!");
+				}
 				if (siege != null && siege.isActive())
 				{
 					if (siege.isPlayerInDimension(operator))
