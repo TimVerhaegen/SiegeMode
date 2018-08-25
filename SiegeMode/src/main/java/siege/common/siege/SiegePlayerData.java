@@ -1,16 +1,22 @@
 package siege.common.siege;
 
-import java.util.*;
-
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.Packet;
-import net.minecraft.network.play.server.*;
-import net.minecraft.scoreboard.*;
+import net.minecraft.network.play.server.S3BPacketScoreboardObjective;
+import net.minecraft.network.play.server.S3CPacketUpdateScore;
+import net.minecraft.network.play.server.S3DPacketDisplayScoreboard;
+import net.minecraft.scoreboard.Score;
+import net.minecraft.scoreboard.ScoreObjective;
+import net.minecraft.scoreboard.Scoreboard;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.world.World;
 import siege.common.kit.Kit;
 import siege.common.kit.KitDatabase;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 public class SiegePlayerData
 {
@@ -215,14 +221,6 @@ public class SiegePlayerData
 		theSiege.markDirty();
 	}
 
-	public boolean onUpdate() {
-		if(!online)
-			offlineTicks++;
-		if(offlineTicks / 20 > theSiege.getMaxTimeOffline())
-			return false;
-		return true;
-	}
-
 	public void onLogin(EntityPlayerMP entityplayer)
 	{
 		online = true;
@@ -238,7 +236,6 @@ public class SiegePlayerData
 	
 	public void onLogout(EntityPlayerMP entityplayer)
 	{
-		online = false;
 
 		lastSentSiegeObjective = null;
 		

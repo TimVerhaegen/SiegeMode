@@ -35,7 +35,6 @@ public class Siege {
     private int maxEnterTime;
     private int initialDuration;
     private int maxTimeOffline;
-    private List<SiegePlayerData> toClear = new ArrayList<SiegePlayerData>();
     private Map<UUID, BackupSpawnPoint> previousSpawnLocations = new HashMap<UUID, BackupSpawnPoint>();
     // -------------------------
 
@@ -268,7 +267,6 @@ public class Siege {
 
     public void startSiege(int duration) {
         playerDataMap.clear();
-        toClear.clear();
         previousSpawnLocations.clear();
 
         for (SiegeTeam team : siegeTeams) {
@@ -276,6 +274,7 @@ public class Siege {
 
             // -------------------------
             team.setCurrentTeamLives(team.getMaxTeamLives());
+            team.setOfflinePlayerCount(0);
             team.resetSpectators();
             // -------------------------
         }
@@ -404,7 +403,7 @@ public class Siege {
         List playerList = MinecraftServer.getServer().getConfigurationManager().playerEntityList;
         for (Object player : playerList) {
             EntityPlayerMP entityplayer = (EntityPlayerMP) player;
-            if (hasPlayer(entityplayer)) {
+            if (hasPlayer(entityplayer) && ((siegeType == SiegeType.PlayerAttempts || siegeType == SiegeType.TeamAttempts) && getSpectatorTeam(entityplayer) == null)) {
                 leavePlayer(entityplayer, false);
             }
         }
@@ -428,9 +427,9 @@ public class Siege {
                 markDirty();
             }
 
-            for (SiegePlayerData data : playerDataMap.values())
-                if (!data.onUpdate())
-                    toClear.add(data);
+            int teamsLeft = getTeamsLeftPlayers();
+            if (maxEnterTime < initialDuration - ticksRemaining && (teamsLeft == 0 || teamsLeft == 1))
+                endSiege();
 
             if (ticksRemaining <= 0) {
                 endSiege();
@@ -539,14 +538,15 @@ public class Siege {
         getPlayerData(entityplayer).updateSiegeScoreboard(entityplayer, forceClearScores);
 
         SiegeTeam team = getPlayerTeam(entityplayer);
-        team.leavePlayer(entityplayer);
 
-        if(!hasSpectator(entityplayer))
+        if (!hasSpectator(entityplayer)) {
+            team.leavePlayer(entityplayer);
+
             team.setCurrentTeamLives(team.getCurrentTeamLives() + 1);
 
-        restoreAndClearBackupSpawnPoint(entityplayer);
-        Kit.clearPlayerInvAndKit(entityplayer);
-
+            restoreAndClearBackupSpawnPoint(entityplayer);
+            Kit.clearPlayerInvAndKit(entityplayer);
+        }
         UUID playerID = entityplayer.getUniqueID();
 
         if (dispelOnEnd) {
@@ -596,7 +596,6 @@ public class Siege {
             float angle = (float) Math.atan2(dz, dx);
 
             if (inSiege) {
-                playerData.incrementOfflineTicks();
 
                 if (!inSiegeRange) {
                     double putRange = radius - EDGE_PUT_RANGE;
@@ -762,9 +761,8 @@ public class Siege {
 
     public void onPlayerLogin(EntityPlayerMP entityplayer) {
         SiegePlayerData playerData = getPlayerData(entityplayer);
-        if (toClear.contains(playerData))
-            leavePlayer(entityplayer, false);
         if (playerData != null) {
+            getPlayerTeam(entityplayer).decrementOfflinePlayerCount();
             playerData.onLogin(entityplayer);
         }
     }
@@ -772,6 +770,7 @@ public class Siege {
     public void onPlayerLogout(EntityPlayerMP entityplayer) {
         SiegePlayerData playerData = getPlayerData(entityplayer);
         if (playerData != null) {
+            getPlayerTeam(entityplayer).incrementOfflinePlayerCount();
             playerData.onLogout(entityplayer);
         }
     }
@@ -831,13 +830,6 @@ public class Siege {
         }
         nbt.setTag("PreviousSpawnLocations", previousLocationTags);
 
-        NBTTagList dataTags = new NBTTagList();
-        for (SiegePlayerData siegePlayerData : toClear) {
-            NBTTagCompound data = new NBTTagCompound();
-            siegePlayerData.writeToNBT(data);
-            dataTags.appendTag(data);
-        }
-        nbt.setTag("ToClear", dataTags);
         // -------------------------
 
         nbt.setInteger("TicksRemaining", ticksRemaining);
@@ -901,16 +893,6 @@ public class Siege {
             }
         }
 
-        toClear.clear();
-        if (nbt.hasKey("ToClear")) {
-            NBTTagList toClearTags = nbt.getTagList("ToClear", Constants.NBT.TAG_COMPOUND);
-            for (int i = 0; i < toClearTags.tagCount(); i++) {
-                NBTTagCompound toClearData = toClearTags.getCompoundTagAt(i);
-                SiegePlayerData data = new SiegePlayerData(this);
-                data.readFromNBT(toClearData);
-                toClear.add(data);
-            }
-        }
         // -------------------------
 
         ticksRemaining = nbt.getInteger("TicksRemaining");
@@ -992,7 +974,9 @@ public class Siege {
 
     private void addSpectator(SiegeTeam team, EntityPlayer player) {
         team.addSpectator(player.getUniqueID());
-        leavePlayer((EntityPlayerMP) player, false);
+        markDirty();
+        leavePlayer((EntityPlayerMP) player, true);
+        markDirty();
     }
 
     private SiegeTeam getSpectatorTeam(EntityPlayer entityplayer) {
@@ -1018,7 +1002,7 @@ public class Siege {
     private int getTeamsLeftPlayers() {
         int teamsAlive = 0;
         for (SiegeTeam team : siegeTeams) {
-            if (team.getPlayerList().size() > 0)
+            if (team.getPlayerList().size() - team.getOfflinePlayerCount() > 0)
                 teamsAlive++;
         }
         return teamsAlive;

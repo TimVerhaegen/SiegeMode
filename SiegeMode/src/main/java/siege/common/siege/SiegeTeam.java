@@ -1,15 +1,17 @@
 package siege.common.siege;
 
-import java.util.*;
-
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.*;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraftforge.common.UsernameCache;
 import net.minecraftforge.common.util.Constants;
 import siege.common.kit.Kit;
 import siege.common.kit.KitDatabase;
+
+import java.util.*;
 
 public class SiegeTeam
 {
@@ -22,6 +24,7 @@ public class SiegeTeam
 	// -------------------------
 	private int maxTeamLives = 5;
 	private int currentTeamLives;
+	private int offlinePLayerCount;
 	private List<UUID> spectators = new ArrayList<UUID>();
 	// -------------------------
 
@@ -481,6 +484,7 @@ public class SiegeTeam
 	}
 
 	public void addSpectator(UUID playerID) {
+		teamPlayers.remove(playerID);
 		spectators.add(playerID);
 	}
 
@@ -494,6 +498,22 @@ public class SiegeTeam
 
 	public List<UUID> getSpectators() {
 		return spectators;
+	}
+
+	public int getOfflinePlayerCount() {
+		return offlinePLayerCount;
+	}
+
+	public void setOfflinePlayerCount(int i) {
+		offlinePLayerCount = i;
+	}
+
+	public void decrementOfflinePlayerCount() {
+		offlinePLayerCount--;
+	}
+
+	public void incrementOfflinePlayerCount() {
+		offlinePLayerCount++;
 	}
 	// -------------------------
 }
